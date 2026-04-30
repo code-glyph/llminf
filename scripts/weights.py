@@ -34,3 +34,5 @@ torch.save(dummy, output_dir / "input_ids.pt")
 torch.save(logits, output_dir / "logits.pt")
 logging.info(f"input_ids shape: {dummy.shape}") 
 logging.info(f"logits shape: {logits.shape}")
+
+print('ref logits[:5]:', logits[:5].tolist())

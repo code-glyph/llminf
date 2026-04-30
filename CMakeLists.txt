@@ -13,8 +13,8 @@ find_package(Torch REQUIRED)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/third_party)
 
-# engine library
-add_library(engine cpp/engine/weights.cpp)
+# engine library    
+add_library(engine cpp/engine/weights.cpp cpp/engine/model.cpp cpp/engine/generate.cpp)
 target_link_libraries(engine ${TORCH_LIBRARIES})
 target_include_directories(engine PUBLIC ${CMAKE_SOURCE_DIR}/include)
 target_compile_options(engine PRIVATE ${TORCH_CXX_FLAGS})

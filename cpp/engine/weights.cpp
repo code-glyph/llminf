@@ -17,6 +17,7 @@ GPT2Weights GPT2Weights::load(const std::string& path, const modelConfig& cfg) {
     GPT2Weights w;
     w.wte    = sd.at("transformer.wte.weight").toTensor().to(device);
     w.wpe    = sd.at("transformer.wpe.weight").toTensor().to(device);
+    w.lm_head = sd.at("lm_head.weight").toTensor().to(device);
 
     w.layers.resize(cfg.n_layer);
     for (int i = 0; i < cfg.n_layer; i++) {
@@ -24,15 +25,16 @@ GPT2Weights GPT2Weights::load(const std::string& path, const modelConfig& cfg) {
         auto& l = w.layers[i];
         l.ln_1_w   = sd.at(p + ".ln_1.weight").toTensor().to(device);
         l.ln_1_b   = sd.at(p + ".ln_1.bias").toTensor().to(device);
-        l.c_attn_w = sd.at(p + ".attn.c_attn.weight").toTensor().to(device);
+        l.c_attn_w = sd.at(p + ".attn.c_attn.weight").toTensor().t().contiguous().to(device);
+        std::cout << "c_attn_w shape: " << w.layers[0].c_attn_w.sizes() << "\n";
         l.c_attn_b = sd.at(p + ".attn.c_attn.bias").toTensor().to(device);
-        l.c_proj_w = sd.at(p + ".attn.c_proj.weight").toTensor().to(device);
+        l.c_proj_w = sd.at(p + ".attn.c_proj.weight").toTensor().t().contiguous().to(device);
         l.c_proj_b = sd.at(p + ".attn.c_proj.bias").toTensor().to(device);
         l.ln_2_w   = sd.at(p + ".ln_2.weight").toTensor().to(device);
         l.ln_2_b   = sd.at(p + ".ln_2.bias").toTensor().to(device);
-        l.c_fc_w   = sd.at(p + ".mlp.c_fc.weight").toTensor().to(device);
+        l.c_fc_w   = sd.at(p + ".mlp.c_fc.weight").toTensor().t().contiguous().to(device);
         l.c_fc_b   = sd.at(p + ".mlp.c_fc.bias").toTensor().to(device);
-        l.c_fc2_w  = sd.at(p + ".mlp.c_proj.weight").toTensor().to(device);
+        l.c_fc2_w  = sd.at(p + ".mlp.c_proj.weight").toTensor().t().contiguous().to(device);
         l.c_fc2_b  = sd.at(p + ".mlp.c_proj.bias").toTensor().to(device);
     }
 

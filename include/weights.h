@@ -20,6 +20,7 @@ struct GPT2Weights {
     torch::Tensor wpe;   // [n_ctx, n_embd]
     std::vector<LayerWeights> layers;
     torch::Tensor ln_f_w, ln_f_b;
+    torch::Tensor lm_head;
 
     static GPT2Weights load(const std::string& path, const modelConfig& cfg);
 };

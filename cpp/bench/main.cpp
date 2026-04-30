@@ -1,31 +1,43 @@
 #include <iostream>
 #include "config.h"
 #include "weights.h"
+#include "model.h"
+#include "generate.h"
 
 int main() {
-    std::string path = "../weights/gpt2-medium";
+    std::string model_path = "../weights/gpt2-medium";
+    torch::Device device(torch::kCUDA, 0);
 
-    auto cfg = modelConfig::load(path);
-    std::cout << "n_layer: "    << cfg.n_layer    << "\n";
-    std::cout << "n_head: "     << cfg.n_head     << "\n";
-    std::cout << "n_embd: "     << cfg.n_embd     << "\n";
-    std::cout << "d_head: "     << cfg.d_head()   << "\n";  
-    std::cout << "vocab_size: " << cfg.vocab_size  << "\n";
-    std::cout << "n_inner: " << cfg.n_inner << "\n";
-    std::cout << "n_ctx: " << cfg.n_ctx << "\n";
-    std::cout << "layer_norm_eps: " << cfg.layer_norm_eps << "\n";
-    std::cout << "scale_attn_weights: " << cfg.scale_attn_weights << "\n";
-    std::cout << "eos_token_id: " << cfg.eos_token_id << "\n";
-    std::cout << "bos_token_id: " << cfg.bos_token_id << "\n";
-    
-    std::cout << "\nLoading weights...\n";
-    auto w = GPT2Weights::load(path, cfg);
+    auto cfg = modelConfig::load(model_path);
+    auto w   = GPT2Weights::load(model_path, cfg);
+    GPT2Model model(cfg, w);
 
-    std::cout << "wte shape: "    << w.wte.sizes()    << "\n";
-    std::cout << "wpe shape: "    << w.wpe.sizes()    << "\n";
-    std::cout << "ln_f_w shape: " << w.ln_f_w.sizes() << "\n";
-    std::cout << "layer 0 c_attn_w shape: " << w.layers[0].c_attn_w.sizes() << "\n";
+    std::vector<int> prompt = {464, 3290, 318, 257, 922};  // "The dog is a good"
+    auto generated = greedy_generate(model, cfg, prompt, 50, device);
 
-    std::cout << "\nDone.\n";
+    std::cout << "\nGenerated token ids:\n";
+    for (int id : generated) std::cout << id << " ";
+    std::cout << "\n";
+
+    // load ref inputs and run forward
+    auto load_tensor = [](const std::string& path) {
+    std::ifstream f(path, std::ios::binary);
+    std::vector<char> bytes(std::istreambuf_iterator<char>(f), {});
+    return torch::pickle_load(bytes).toTensor();
+    };
+
+    auto ref_input  = load_tensor("../weights/gpt2-medium/input_ids.pt").to(device).squeeze(0);
+    auto ref_logits = load_tensor("../weights/gpt2-medium/logits.pt").to(device);
+    KVCacheSimple kv2(cfg, cfg.n_ctx, device);
+    auto cpp_logits = model.forward(ref_input, kv2);
+
+    std::cout << "ref logits[:5]: ";
+    for (int i = 0; i < 5; i++) std::cout << ref_logits[i].item<float>() << " ";
+    std::cout << "\ncpp logits[:5]: ";
+    for (int i = 0; i < 5; i++) std::cout << cpp_logits[i].item<float>() << " ";
+
+    float max_diff = (cpp_logits - ref_logits).abs().max().item<float>();
+    std::cout << "\nmax diff: " << max_diff << "\n";
+    std::cout << (max_diff < 1e-2 ? "PASS" : "FAIL") << "\n";
     return 0;
 }
