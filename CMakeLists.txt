@@ -13,11 +13,13 @@ find_package(Torch REQUIRED)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/third_party)
 
-# engine library (empty for now, we'll add sources as we go)
-add_library(engine INTERFACE)
-target_include_directories(engine INTERFACE ${CMAKE_SOURCE_DIR}/include)
+# engine library
+add_library(engine cpp/engine/weights.cpp)
+target_link_libraries(engine ${TORCH_LIBRARIES})
+target_include_directories(engine PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_compile_options(engine PRIVATE ${TORCH_CXX_FLAGS})
 
 # bench binary
 add_executable(bench cpp/bench/main.cpp)
-target_link_libraries(bench ${TORCH_LIBRARIES})
+target_link_libraries(bench engine ${TORCH_LIBRARIES})
 target_compile_options(bench PRIVATE ${TORCH_CXX_FLAGS})
