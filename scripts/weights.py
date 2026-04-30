@@ -20,7 +20,9 @@ state_dict = model.state_dict()
 weights = {k: v.cpu().numpy() for k, v in state_dict.items()}
 
 np.savez(output_dir / "weights.npz", weights)
-torch.save(state_dict, output_dir / "weights.pt")
+
+tensors = {k: v.cpu() for k, v in state_dict.items()}
+torch.save(tensors, output_dir / "weights.pt")
 logging.info("weights saved successfully!")
 
 dummy = torch.tensor([[464, 3290, 318, 257, 922]])  # "The dog is a good"
